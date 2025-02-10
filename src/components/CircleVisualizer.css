@@ -1,0 +1,21 @@
+.circle-wave {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 200%; /* Extra width to allow horizontal scrolling */
+  height: 100%;
+  background-image: url('/wave.png'); /* Replace with your wave PNG path */
+  background-repeat: repeat-x;
+  background-size: cover;
+  animation: waveAnimation 2s linear infinite;
+}
+
+
+@keyframes waveAnimation {
+  from {
+    background-position-x: 0;
+  }
+  to {
+    background-position-x: -50%;
+  }
+}
