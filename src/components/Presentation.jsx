@@ -1,12 +1,26 @@
 import React, { useState, useEffect, useRef } from 'react';
 import CircleVisualizer from './CircleVisualizer';
 
-// Updated slide deck with an image slide.
 const slides = [
-  { id: 1, speaker: 'pitcher' },
-  { id: 2, speaker: 'ai', audioSrc: '/audio/clip1.mp3' },
-  { id: 3, speaker: 'ai', audioSrc: '/audio/clip2.mp3', imgSrc: '/image/clip1.png' },
-  { id: 4, speaker: 'ai', videoSrc: '/video/clip1.mp4', audioSrc: '/audio/clip3.mp3' },
+  { id: 0, speaker: 'pitcher', imgSrc: '/image/cover-pitch.png', circlevisible: false },
+  { id: 0, speaker: 'pitcher', imgSrc: '/image/cover-pitch.png', circlevisible: true },
+  { id: 1, speaker: 'ai', audioSrc: '/audio/pitch-1.wav', imgSrc:'/image/base-slide-deck.png', forceCenter: true, circlevisible: true },
+  { id: 2, speaker: 'ai', videoSrc: '/video/Pitch-2.mp4', circlevisible: true },
+  { id: 3, speaker: 'ai', videoSrc: '/video/Pitch-3_2.mp4', circlevisible: true }, 
+  { id: 4, speaker: 'pitcher', imgSrc: '/image/problem-slide-deck.png', circlevisible: false },
+  { id: 5, speaker: 'pitcher', imgSrc: '/image/solution-slide-deck.png', circlevisible: false },
+  { id: 6, speaker: 'ai', imgSrc: '/image/solution-slide-deck.png', audioSrc: '/audio/pitch-4.wav', circlevisible: true },
+  { id: 7, speaker: 'ai', audioSrc: '/audio/pitch-5.mp3', imgSrc: '/image/base-slide-deck.png', forceCenter: true, circlevisible: true },
+  { id: 8, speaker: 'pitcher', imgSrc: '/image/business-model-slide-deck.png', circlevisible: true },
+  { id: 9, speaker: 'ai', videoSrc: '/video/Pitch-6.mp4', circlevisible: true },
+  { id: 10, speaker: 'pitcher', imgSrc: '/image/team-slide-deck.png', circlevisible: false},
+  { id: 11, speaker: 'pitcher', imgSrc: '/image/investments-slide-deck.png', circlevisible: false },
+  { id: 12, speaker: 'pitcher', imgSrc: '/image/billing-slide-deck.png', circlevisible: false },
+  { id: 13, speaker: 'pitcher', imgSrc: '/image/customer-service-law-slide-deck.png', circlevisible: false },
+  { id: 14, speaker: 'pitcher', imgSrc: '/image/customer-service-law-slide-deck.png', circlevisible: true },
+  { id: 15, speaker: 'ai', audioSrc: '/audio/pitch-7.mp3', imgSrc: '/image/base-slide-deck.png', forceCenter:true, circlevisible: true },
+  { id: 16, speaker: 'ai', videoSrc: '/video/Pitch-8.mp4', circlevisible: true },
+  { id: 17, speaker: 'end', videoSrc: '/video/Pitch-9.mp4', circlevisible: false }
 ];
 
 const Presentation = () => {
@@ -21,6 +35,9 @@ const Presentation = () => {
   const audioContextRef = useRef(null);
   const micAnalyserRef = useRef(null);
   const speakerAnalyserRef = useRef(null);
+  // NEW: refs to store the MediaElementSource for video and audio.
+  const videoSourceRef = useRef(null);
+  const audioSourceRef = useRef(null);
   
   const animationFrameIdRef = useRef(null);
 
@@ -30,9 +47,13 @@ const Presentation = () => {
     const audioContext = new AudioContext();
     audioContextRef.current = audioContext;
     
-    // Request microphone access and set up the mic analyser.
     navigator.mediaDevices.getUserMedia({ audio: true })
       .then(stream => {
+        if (audioContext.state === 'suspended') {
+          audioContext.resume().then(() => {
+            console.log('AudioContext resumed after getUserMedia');
+          });
+        }
         const micSource = audioContext.createMediaStreamSource(stream);
         const analyser = audioContext.createAnalyser();
         analyser.fftSize = 256;
@@ -81,40 +102,71 @@ const Presentation = () => {
     return () => cancelAnimationFrame(animationFrameIdRef.current);
   }, [activeMode]);
 
-  // Create MediaElementSource and resume AudioContext on user play.
+  // Create MediaElementSource and resume AudioContext on user play for audio.
   const handleAudioPlay = () => {
     console.log('Audio play requested.');
-    
-    // Ensure the AudioContext is resumed.
     if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
       audioContextRef.current.resume().then(() => {
         console.log('AudioContext resumed:', audioContextRef.current.state);
       }).catch(err => console.error('AudioContext resume error:', err));
     }
     
-    // Create the MediaElementSource and analyser only once.
     if (!speakerAnalyserRef.current && audioContextRef.current && audioRef.current) {
       try {
-        const source = audioContextRef.current.createMediaElementSource(audioRef.current);
+        let source;
+        if (!audioSourceRef.current) {
+          audioSourceRef.current = audioContextRef.current.createMediaElementSource(audioRef.current);
+        }
+        source = audioSourceRef.current;
         const analyser = audioContextRef.current.createAnalyser();
         analyser.fftSize = 256;
-        
-        // Connect via the analyser.
         source.connect(analyser);
         analyser.connect(audioContextRef.current.destination);
-        
         speakerAnalyserRef.current = analyser;
-        console.log('MediaElementSource and analyser created.');
+        console.log('MediaElementSource and analyser created for audio.');
       } catch (error) {
-        console.error('Error setting up speaker analyser:', error);
+        console.error('Error setting up speaker analyser for audio:', error);
       }
     }
   };
 
-  // Listen for the PageUp key to trigger next slide.
+  // Create MediaElementSource and resume AudioContext on user play for video.
+  const handleVideoPlay = () => {
+    console.log('Video play requested.');
+    if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+      audioContextRef.current.resume().then(() => {
+        console.log('AudioContext resumed:', audioContextRef.current.state);
+      }).catch(err => console.error('AudioContext resume error:', err));
+    }
+    
+    if (videoRef.current) {
+      videoRef.current.muted = false;
+      videoRef.current.volume = 1;
+    }
+    
+    // Use the stored videoSourceRef if already created.
+    if (!speakerAnalyserRef.current && audioContextRef.current && videoRef.current) {
+      try {
+        let source;
+        if (!videoSourceRef.current) {
+          videoSourceRef.current = audioContextRef.current.createMediaElementSource(videoRef.current);
+        }
+        source = videoSourceRef.current;
+        const analyser = audioContextRef.current.createAnalyser();
+        analyser.fftSize = 256;
+        source.connect(analyser);
+        analyser.connect(audioContextRef.current.destination);
+        speakerAnalyserRef.current = analyser;
+        console.log('MediaElementSource and analyser created for video.');
+      } catch (error) {
+        console.error('Error setting up speaker analyser for video:', error);
+      }
+    }
+  };
+
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === 'PageUp') {
+      if (e.key === 'ArrowRight' || e.key === 'PageDown') {
         nextSlide();
       }
     };
@@ -131,9 +183,17 @@ const Presentation = () => {
 
   // Update media based on slide changes.
   useEffect(() => {
+    if (speakerAnalyserRef.current) {
+      try {
+        speakerAnalyserRef.current.disconnect();
+      } catch (err) {
+        console.error('Error disconnecting speaker analyser:', err);
+      }
+      speakerAnalyserRef.current = null;
+    }
+    
     const slide = slides[currentSlide];
     
-    // Reset media players.
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
@@ -148,33 +208,25 @@ const Presentation = () => {
       imageRef.current.style.display = 'none';
     }
     
-    if (slide.speaker === 'ai') {
-      if (slide.audioSrc && audioRef.current) {
-        audioRef.current.src = slide.audioSrc;
-        audioRef.current.load();
-        audioRef.current.play()
-          .then(() => console.log('AI Audio playing.'))
-          .catch(error => console.error('AI Audio play error:', error));
-      }
-      
-      // Prefer video if provided; otherwise, use an image if available.
-      if (slide.videoSrc && videoRef.current) {
-        videoRef.current.src = slide.videoSrc;
-        videoRef.current.style.display = 'block';
-        videoRef.current.play()
-          .catch(error => console.error('Video play error:', error));
-      } else if (slide.imgSrc && imageRef.current) {
-        imageRef.current.src = slide.imgSrc;
-        imageRef.current.style.display = 'block';
-      }
-    } else {
-      // For the pitcher's slide, hide both video and image.
-      if (videoRef.current) {
-        videoRef.current.style.display = 'none';
-      }
-      if (imageRef.current) {
-        imageRef.current.style.display = 'none';
-      }
+    // Play audio if provided.
+    if (slide.audioSrc && audioRef.current) {
+      audioRef.current.src = slide.audioSrc;
+      audioRef.current.load();
+      audioRef.current.play()
+        .then(() => console.log('AI Audio playing.'))
+        .catch(error => console.error('AI Audio play error:', error));
+    }
+    // Play video if provided.
+    if (slide.videoSrc && videoRef.current) {
+      videoRef.current.src = slide.videoSrc;
+      videoRef.current.style.display = 'block';
+      videoRef.current.play()
+        .catch(error => console.error('Video play error:', error));
+    }
+    // Show image if provided (regardless of speaker).
+    if (slide.imgSrc && imageRef.current) {
+      imageRef.current.src = slide.imgSrc;
+      imageRef.current.style.display = 'block';
     }
   }, [currentSlide]);
 
@@ -189,14 +241,15 @@ const Presentation = () => {
         overflow: 'hidden'
       }}
     >
-      <CircleVisualizer
-				amplitude={amplitude}
-				activeMode={activeMode}
-				mediaVisible={
-					slides[currentSlide].speaker === 'ai' &&
-					(slides[currentSlide].videoSrc || slides[currentSlide].imgSrc)
-				}
-			/>
+      {slides[currentSlide].circlevisible !== false && (
+        <CircleVisualizer
+          amplitude={amplitude}
+          activeMode={activeMode}
+          mediaVisible={!!(slides[currentSlide].videoSrc || slides[currentSlide].imgSrc)}
+          forceCenter={slides[currentSlide].forceCenter} // New option to force the circle in the center.
+          final={slides[currentSlide].final}
+        />
+      )}
       
       <audio
         ref={audioRef}
@@ -229,24 +282,29 @@ const Presentation = () => {
       
       <video
         ref={videoRef}
+        muted={false}
         style={{
           position: 'absolute',
-          top: '10%',
-          left: '10%',
-          width: '80%',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          objectFit: 'cover',
           display: 'none'
         }}
+        onPlay={handleVideoPlay}
         onEnded={() => setActiveMode('mic')}
-        muted
       />
       
       <img
         ref={imageRef}
         style={{
           position: 'absolute',
-          top: '10%',
-          left: '10%',
-          width: '80%',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          objectFit: 'cover',
           display: 'none'
         }}
         alt="Slide content"
@@ -260,7 +318,8 @@ const Presentation = () => {
           left: '20px',
           zIndex: 10,
           padding: '10px 20px',
-          fontSize: '16px'
+          fontSize: '16px',
+          display: 'none'
         }}
       >
         Next Slide (PageUp)

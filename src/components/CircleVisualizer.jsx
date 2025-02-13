@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const CircleVisualizer = ({ amplitude, activeMode, mediaVisible }) => {
+const CircleVisualizer = ({ amplitude, activeMode, mediaVisible, forceCenter, final }) => {
   // Base sizes.
   const minSize = 50;
   const maxSizeNormal = 250; // When centered.
@@ -20,29 +20,27 @@ const CircleVisualizer = ({ amplitude, activeMode, mediaVisible }) => {
   const color = activeMode === 'speaker' ? '#9e77ed' : '#717680';
   
   // Store an offset to use in the transform.
-  // We compute this offset only when mediaVisible changes (so it doesn't jitter as the size changes).
   const [offset, setOffset] = useState({ diffX: 0, diffY: 0 });
   
   useEffect(() => {
-    if (mediaVisible) {
+    if (mediaVisible && !forceCenter) {
       const margin = 20;
-      const centerX = window.innerWidth / 2;
-      const centerY = window.innerHeight / 2;
-      // Compute target center position for the circle in the corner using effectiveMaxSize.
-      const targetX = window.innerWidth - margin - effectiveMaxSize / 2;
+      // For bottom center, target x remains centered and y is at the bottom.
+      const diffX = 0;
       const targetY = window.innerHeight - margin - effectiveMaxSize / 2;
-      const diffX = targetX - centerX;
-      const diffY = targetY - centerY;
+      const diffY = targetY - window.innerHeight / 2;
       setOffset({ diffX, diffY });
     } else {
       setOffset({ diffX: 0, diffY: 0 });
     }
-  }, [mediaVisible, effectiveMaxSize]);
+  }, [mediaVisible, effectiveMaxSize, forceCenter]);
   
-  // Compute the transform based on the stored offset.
-  const transform = mediaVisible
-    ? `translate(calc(-50% + ${offset.diffX}px), calc(-50% + ${offset.diffY}px))`
-    : 'translate(-50%, -50%)';
+  // Compute the transform based on stored offset.
+  // If forceCenter is true or there's no media, always center the circle.
+  const transform =
+    forceCenter || !mediaVisible
+      ? 'translate(-50%, -50%)'
+      : `translate(calc(-50% + ${offset.diffX}px), calc(-50% + ${offset.diffY}px))`;
   
   const circleStyle = {
     width: `${size}px`,
@@ -54,8 +52,8 @@ const CircleVisualizer = ({ amplitude, activeMode, mediaVisible }) => {
     left: '50%',
     transform: transform,
     zIndex: 1000,
-    // Animate transform (for position) as well as size and background-color.
-    transition: 'transform 1s ease-in-out, width 0.3s ease-in-out, height 0.3s ease-in-out, background-color 0.3s ease-in-out'
+    transition:
+      'transform 1s ease-in-out, width 0.3s ease-in-out, height 0.3s ease-in-out, background-color 0.3s ease-in-out'
   };
   
   return <div style={circleStyle} />;

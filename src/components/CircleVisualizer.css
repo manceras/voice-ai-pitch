@@ -1,21 +1,66 @@
+/* The outer circle container is assigned .circle-style in the JSX. */
+.circle-style {
+  border-radius: 50%;
+  position: absolute;
+  /* We place it absolutely in the center via inline style, so we typically
+     don't set 'top' and 'left' here. */
+  /* We'll also handle transform in the inline style. */
+  overflow: hidden;  /* ensures child content is clipped to a circle */
+  z-index: 1000;
+  transition: transform 1s ease-in-out,
+              width 0.3s ease-in-out,
+              height 0.3s ease-in-out,
+              background-color 0.3s ease-in-out;
+}
+
+/* Add a swirl gradient background with conic-gradient. */
+.swirl-gradient {
+  background: conic-gradient(
+    from 0deg,
+    #51c3ff 0deg,
+    #039dfd 120deg,
+    #0378c4 240deg,
+    #51c3ff 360deg
+  );
+  
+  animation: swirl-rotate 10s linear infinite;
+}
+
+@keyframes swirl-rotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* The wave overlay child that sits inside the circle. */
 .circle-wave {
   position: absolute;
   top: 0;
   left: 0;
-  width: 200%; /* Extra width to allow horizontal scrolling */
+  width: 200%; /* Extra width to allow continuous scrolling */
   height: 100%;
-  background-image: url('/wave.png'); /* Replace with your wave PNG path */
+  
+  /* The wave image (replace the path with your own) */
+  background-image: url('/images/wave.png');
   background-repeat: repeat-x;
-  background-size: cover;
-  animation: waveAnimation 2s linear infinite;
+  
+  /* Adjust size to make the wave smaller or bigger */
+  background-size: 150px auto;
+  
+  /* This animation scrolls the wave horizontally. It always 'exists',
+     but we can pause/resume it from JSX. */
+  animation: wave-scroll 2s linear infinite;
 }
 
-
-@keyframes waveAnimation {
-  from {
+/* Keyframe for scrolling the background horizontally */
+@keyframes wave-scroll {
+  0% {
     background-position-x: 0;
   }
-  to {
+  100% {
     background-position-x: -50%;
   }
 }
